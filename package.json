@@ -10,6 +10,7 @@
   "author": "Arthur Caillaud",
   "license": "ISC",
   "dependencies": {
+    "ping": "^0.2.2",
     "rxjs": "^5.5.2"
   }
 }
