@@ -51,19 +51,19 @@ module.exports = function(){
                                 rl.close();
                             }
                             else {
-                                obs.error("Number of check intervals precised does not concur with the number of websites.\nProcess exiting...");
+                                obs.error("Number of check intervals precised does not concur with the number of websites.");
                                 rl.close();
                             }
                         }
                     }
                     else {
-                        obs.error("No check interval precised.\nProcess exiting...");
+                        obs.error("No check interval precised.");
                         rl.close();
                     }
                 })
             }
             else {
-                obs.error("No website precised.\nProcess exiting...");
+                obs.error("No website precised.");
                 rl.close();
             }
         });

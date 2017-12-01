@@ -9,6 +9,6 @@ module.exports = function checkInternet() {
             } else {
                 obs.next();
             }
-        })
+        });
     })
 }
