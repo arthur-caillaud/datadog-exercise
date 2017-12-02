@@ -6,7 +6,7 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-module.exports = function(){
+const askForInput = function(){
     return Rx.Observable.create(obs => {
         rl.question('Which websites do you want to monitor? (separate each website with a space) \n', answer => {
             let websitesArray = answer.split(' ');
@@ -17,7 +17,7 @@ module.exports = function(){
             if(websitesArray.length > 0){
                 rl.question("At what intervals (in seconds) do you want to collect your metrics? \n"+
                 "(precise only one if you choose the same for all website, separe each interval with a space if not)\n", answer => {
-                    const checkIntervals = answer.split(' ');
+                    let checkIntervals = answer.split(' ');
                     let index = checkIntervals.indexOf('');
                     if (index > -1) {
                         checkIntervals.splice(index, 1);
@@ -32,7 +32,12 @@ module.exports = function(){
                             }
                         })
                         if(checkIntervals.length === 1){
-                            console.log(`Metrics will be measured each ${checkIntervals[0]} second`)
+                            const checkInterval = checkIntervals[0];
+                            checkIntervals = [];
+                            console.log(`Metrics will be measured each ${checkInterval} second`)
+                            for(var i = 0; i < websitesArray.length; i++){
+                                checkIntervals.push(checkInterval)
+                            }
                             obs.next({
                                 websitesArray: websitesArray,
                                 checkIntervals: checkIntervals
@@ -41,7 +46,7 @@ module.exports = function(){
                         }
                         else{
                             if(checkIntervals.length === websitesArray.length){
-                                websitesArray.forEach(website, index => {
+                                websitesArray.forEach((website, index) => {
                                     console.log(website, "will be checked each ", checkIntervals[index], " seconds");
                                 })
                                 obs.next({
@@ -68,4 +73,6 @@ module.exports = function(){
             }
         });
     })
-}
+};
+
+module.exports = askForInput;
