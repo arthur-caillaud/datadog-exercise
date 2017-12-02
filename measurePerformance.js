@@ -4,13 +4,14 @@ const config = require('./config.json');
 const http = require('http');
 const https = require('https');
 
+var now = function(){
+    return new Date().getTime()
+}
+
 var toStandardUrl = function(websiteUrl){
     const splitDotUrl = websiteUrl.split('.');
     const splitSlashUrl = websiteUrl.split(':');
     let returnUrl = websiteUrl;
-    if(splitDotUrl.length < 2 && splitDotUrl[0] !== "www"){
-        returnUrl = 'www.' + returnUrl;
-    }
     if(splitSlashUrl.length > 1){
         return ({
             url: returnUrl,
@@ -55,6 +56,12 @@ var httpMeasure = function(websiteUrl){
             if (statusCode !== 200) {
                 error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
             }
+            if (statusCode === 301 || statusCode === 302) {
+                obs.next({
+                    shouldRedirect: true,
+                    trueLocation: res.headers.location
+                })
+            }
             if (error) {
                 obs.error(error.message);
                 // consume response data to free up memory
@@ -66,7 +73,10 @@ var httpMeasure = function(websiteUrl){
                 res.once('readable', () => {
                     firstReceiveDelay = process.hrtime(startTime)
                     obs.next({
-                        firstByteDelay: firstReceiveDelay[1]/1000000
+                        firstByteDelay: {
+                            timestamp: now(),
+                            value: firstReceiveDelay[1]/1000000
+                        }
                     });
                 });
                 let rawDataBuffer;
@@ -74,8 +84,10 @@ var httpMeasure = function(websiteUrl){
                 res.on('end', () => {
                     lastReceiveDelay = process.hrtime(startTime)
                     obs.next({
-                        lastByteDelay: lastReceiveDelay[1]/1000000,
-                        contentTransferDelay: lastReceiveDelay[1]/1000000 - firstReceiveDelay[1]/1000000
+                        lastByteDelay: {
+                            timestamp: now(),
+                            value: lastReceiveDelay[1]/1000000
+                        }
                     });
                 });
             }
@@ -87,19 +99,28 @@ var httpMeasure = function(websiteUrl){
             socket.on('lookup', () => {
                 const dnsLookupDelay = process.hrtime(startTime)
                 obs.next({
-                    dnsLookupDelay: dnsLookupDelay[1]/1000000
+                    dnsLookupDelay: {
+                        timestamp: now(),
+                        value: dnsLookupDelay[1]/1000000
+                    }
                 })
             })
             socket.on('connect', () => {
                 const tcpConnectionDelay = process.hrtime(startTime)
                 obs.next({
-                    tcpConnectionDelay: tcpConnectionDelay[1]/1000000
+                    tcpConnectionDelay: {
+                        timestamp: now(),
+                        value: tcpConnectionDelay[1]/1000000
+                    }
                 })
             })
             socket.on('secureConnect', () => {
                 const tlsHandshakeDelay = process.hrtime(startTime)
                 obs.next({
-                    tlsHandshakeDelay: tlsHandshakeDelay[1]/1000000
+                    tlsHandshakeDelay: {
+                        timestamp: now(),
+                        value: tlsHandshakeDelay[1]/1000000
+                    }
                 })
             })
         });
@@ -118,6 +139,12 @@ var httpsMeasure = function(websiteUrl){
             if (statusCode !== 200) {
                 error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
             }
+            if (statusCode === 301 || statusCode === 302) {
+                obs.next({
+                    shouldRedirect: true,
+                    trueLocation: res.headers.location
+                })
+            }
             if (error) {
                 obs.error(error.message);
                 // consume response data to free up memory
@@ -127,7 +154,10 @@ var httpsMeasure = function(websiteUrl){
                 res.once('readable', () => {
                     const firstReceiveDelay = process.hrtime(startTime)
                     obs.next({
-                        firstByteDelay: firstReceiveDelay[1]/1000000
+                        firstByteDelay: {
+                            timestamp: now(),
+                            value: firstReceiveDelay[1]/1000000
+                        }
                     });
                 });
                 let rawDataBuffer;
@@ -135,7 +165,10 @@ var httpsMeasure = function(websiteUrl){
                 res.on('end', () => {
                     const lastReceiveDelay = process.hrtime(startTime)
                     obs.next({
-                        lastByteDelay: lastReceiveDelay[1]/1000000
+                        lastByteDelay: {
+                            timestamp: now(),
+                            value: lastReceiveDelay[1]/1000000
+                        }
                     });
                 });
             }
@@ -147,19 +180,28 @@ var httpsMeasure = function(websiteUrl){
             socket.on('lookup', () => {
                 const dnsLookupDelay = process.hrtime(startTime)
                 obs.next({
-                    dnsLookupDelay: dnsLookupDelay[1]/1000000
+                    dnsLookupDelay: {
+                        timestamp: now(),
+                        vale: dnsLookupDelay[1]/1000000
+                    }
                 })
             })
             socket.on('connect', () => {
                 const tcpConnectionDelay = process.hrtime(startTime)
                 obs.next({
-                    tcpConnectionDelay: tcpConnectionDelay[1]/1000000
+                    tcpConnectionDelay: {
+                        timestamp: now(),
+                        value: tcpConnectionDelay[1]/1000000
+                    }
                 })
             })
             socket.on('secureConnect', () => {
                 const tlsHandshakeDelay = process.hrtime(startTime)
                 obs.next({
-                    tlsHandshakeDelay: tlsHandshakeDelay[1]/1000000
+                    tlsHandshakeDelay: {
+                        timestamp: now(),
+                        value: tlsHandshakeDelay[1]/1000000
+                    }
                 })
             })
         });
@@ -176,12 +218,12 @@ pingMeasure('google.fr').subscribe({
         console.error(err)
     }
 })*/
-
-httpMeasure("http://www.facebook.fr").subscribe({
+/*
+httpMeasure("http://google.fr").subscribe({
     next: time => {
         console.log(time)
     },
     error: err => {
         console.error(err)
     }
-})
+})*/
