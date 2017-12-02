@@ -84,7 +84,7 @@ var requestCallBackFunction = function(res, obs){
                     value: statusCode
                 },
                 shouldRedirect: false,
-                trueLocation: websiteUrl
+                trueLocation: res.headers.location
             })
             obs.error(error.message);
             res.resume();
@@ -97,7 +97,7 @@ var requestCallBackFunction = function(res, obs){
                 value: statusCode
             },
             shouldRedirect: false,
-            trueLocation: websiteUrl
+            trueLocation: res.headers.location
         })
         res.once('readable', () => {
             let firstReceiveDelay = process.hrtime(startTime)
@@ -214,26 +214,31 @@ var httpsMeasure = function(websiteUrl){
  * Function converts eventual domain name to the proper url to request
  */
 var measurePerformance = function(website,checkInterval){
-    let trueUrl = toStandardUrl(website).url;
-    let protocol = toStandardUrl(website).protocol;
-    let measurementFunction = httpMeasure;
-    if (protocol === 'https'){
-        measurementFunction = httpsMeasure;
-    }
     /*
      * We have to make a first request to know if we are going to request the server
      * on the appropriate url. If we obtain a shouldRedirect=true we are going to change trueUrl
      * before keeping on making measurements
      */
     return Rx.Observable.create(obs => {
+        let trueUrl = toStandardUrl(website).url;
+        let protocol = toStandardUrl(website).protocol;
+        let measurementFunction = httpMeasure;
+        if (protocol === 'https'){
+            measurementFunction = httpsMeasure;
+        }
         measurementFunction(trueUrl).subscribe({
             next: data => {
                 if(data.statusCode){
+                    let finalUrl = toStandardUrl(data.trueLocation).url;
+                    let finalProtocol = toStandardUrl(data.trueLocation).protocol;
+                    let finalMeasurementFunction = httpMeasure;
                     if(data.shouldRedirect){
-                        trueUrl = data.trueLocation
+                        if (finalProtocol === 'https'){
+                            finalMeasurementFunction = httpsMeasure;
+                        }
                     }
                     setInterval(trueUrl => {
-                        measurementFunction(trueUrl).subscribe({
+                        finalMeasurementFunction(trueUrl).subscribe({
                             next: data => {
                                 obs.next(data)
                             },
@@ -241,7 +246,7 @@ var measurePerformance = function(website,checkInterval){
                                 obs.error(err)
                             }
                         })
-                    },checkInterval);
+                    },checkInterval*1000);
                 };
             },
             error: err => {

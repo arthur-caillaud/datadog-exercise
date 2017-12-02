@@ -34,7 +34,7 @@ const askForInput = function(){
                         if(checkIntervals.length === 1){
                             const checkInterval = checkIntervals[0];
                             checkIntervals = [];
-                            console.log(`Metrics will be measured each ${checkInterval} second`)
+                            console.log(`Metrics will be measured each ${checkInterval} seconds.`)
                             for(var i = 0; i < websitesArray.length; i++){
                                 checkIntervals.push(checkInterval)
                             }
