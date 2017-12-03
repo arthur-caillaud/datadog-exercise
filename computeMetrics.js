@@ -27,6 +27,34 @@ const computeData = function(website,checkInterval){
         Object.keys(dataObject).forEach(dataKey => {
             tenMinStats[dataKey] = {};
             if(dataKey === "statusCode"){
+                dataObject.statusCode.tenMinData.forEach((dataNode,index,dataArray) => {
+                    /*
+                     * If this datanode timestamp is older than 10 minutes, we remove
+                     * it from the data array.
+                     * If not we keep it for our analytics computation
+                     */
+                    if(startTime - dataNode.timestamp > timeframe){
+                        if (index > -1) {
+                            dataArray.splice(index, 1);
+                        }
+                    }
+                    /* This datanode is still valid*/
+                    else {
+                        if(!tenMinStats.statusCode.total){
+                            tenMinStats.statusCode.total = 0;
+                        }
+                        if(!tenMinStats.statusCode[dataNode.value]){
+                            tenMinStats.statusCode[dataNode.value] = 0;
+                        }
+                        tenMinStats.statusCode[dataNode.value] += 1;
+                        tenMinStats.statusCode.total += 1
+                    }
+                });
+                Object.keys(tenMinStats.statusCode).forEach(key => {
+                    if(key !== 'total'){
+                        tenMinStats.statusCode[key] = 100*tenMinStats.statusCode[key]/tenMinStats.statusCode.total +'%';
+                    }
+                })
             }
             else{
                 if(dataObject[dataKey].tenMinData.length > 0){
@@ -90,17 +118,8 @@ const computeData = function(website,checkInterval){
         let startTime = now();
         Object.keys(dataObject).forEach(dataKey => {
             hourStats[dataKey] = {};
-            if(dataObject[dataKey].hourData.length > 0){
-                let avgSum = 0;
-                let hourMin;
-                let hourMax;
-                if(dataObject[dataKey].hourMin && startTime - dataObject[dataKey].hourMin.timestamp < timeframe){
-                    hourMin = dataObject[dataKey].hourMin;
-                }
-                if(dataObject[dataKey].hourMax && startTime - dataObject[dataKey].hourMax.timestamp < timeframe){
-                    hourMax = dataObject[dataKey].hourMax;
-                }
-                dataObject[dataKey].hourData.forEach((dataNode,index,dataArray) => {
+            if(dataKey === "statusCode"){
+                dataObject.statusCode.hourData.forEach((dataNode,index,dataArray) => {
                     /*
                      * If this datanode timestamp is older than 10 minutes, we remove
                      * it from the data array.
@@ -113,27 +132,68 @@ const computeData = function(website,checkInterval){
                     }
                     /* This datanode is still valid*/
                     else {
-                        avgSum += dataNode.value;
-                        if(!hourMin || dataNode.value < hourMin.value){
-                            hourMin = dataNode
+                        if(!hourStats.statusCode.total){
+                            hourStats.statusCode.total = 0;
                         }
-                        if(!hourMax || dataNode.value > hourMax.value){
-                            hourMax = dataNode
+                        if(!hourStats.statusCode[dataNode.value]){
+                            hourStats.statusCode[dataNode.value] = 0;
                         }
+                        hourStats.statusCode[dataNode.value] += 1;
+                        hourStats.statusCode.total += 1
                     }
                 });
-                /*
-                 * We modify dataObject so that it keeps track of the new values
-                 */
-                dataObject[dataKey].hourAvg = avgSum/dataObject[dataKey].hourData.length;
-                dataObject[dataKey].hourMin = hourMin;
-                dataObject[dataKey].hourMax = hourMax;
-                /*
-                 * We enter these new values in tenMinStats object as it is what this function returns
-                 */
-                hourStats[dataKey].average = dataObject[dataKey].hourAvg;
-                hourStats[dataKey].minimum = dataObject[dataKey].hourMin.value;
-                hourStats[dataKey].maximum = dataObject[dataKey].hourMax.value;
+                Object.keys(hourStats.statusCode).forEach(key => {
+                    if(key !== 'total'){
+                        hourStats.statusCode[key] = 100*hourStats.statusCode[key]/hourStats.statusCode.total +'%';
+                    }
+                })
+            }
+            else{
+                if(dataObject[dataKey].hourData.length > 0){
+                    let avgSum = 0;
+                    let hourMin;
+                    let hourMax;
+                    if(dataObject[dataKey].hourMin && startTime - dataObject[dataKey].hourMin.timestamp < timeframe){
+                        hourMin = dataObject[dataKey].hourMin;
+                    }
+                    if(dataObject[dataKey].hourMax && startTime - dataObject[dataKey].hourMax.timestamp < timeframe){
+                        hourMax = dataObject[dataKey].hourMax;
+                    }
+                    dataObject[dataKey].hourData.forEach((dataNode,index,dataArray) => {
+                        /*
+                         * If this datanode timestamp is older than 10 minutes, we remove
+                         * it from the data array.
+                         * If not we keep it for our analytics computation
+                         */
+                        if(startTime - dataNode.timestamp > timeframe){
+                            if (index > -1) {
+                                dataArray.splice(index, 1);
+                            }
+                        }
+                        /* This datanode is still valid*/
+                        else {
+                            avgSum += dataNode.value;
+                            if(!hourMin || dataNode.value < hourMin.value){
+                                hourMin = dataNode
+                            }
+                            if(!hourMax || dataNode.value > hourMax.value){
+                                hourMax = dataNode
+                            }
+                        }
+                    });
+                    /*
+                     * We modify dataObject so that it keeps track of the new values
+                     */
+                    dataObject[dataKey].hourAvg = avgSum/dataObject[dataKey].hourData.length;
+                    dataObject[dataKey].hourMin = hourMin;
+                    dataObject[dataKey].hourMax = hourMax;
+                    /*
+                     * We enter these new values in tenMinStats object as it is what this function returns
+                     */
+                    hourStats[dataKey].average = dataObject[dataKey].hourAvg;
+                    hourStats[dataKey].minimum = dataObject[dataKey].hourMin.value;
+                    hourStats[dataKey].maximum = dataObject[dataKey].hourMax.value;
+                }
             }
         });
         let endTime = now();
