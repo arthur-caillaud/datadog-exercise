@@ -8,15 +8,18 @@ const https = require('https');
  * Function used to timestamp datanodes
  * Function returns the number of milliseconds since January 1, 1970
  */
-var now = function(){
+const now = function(){
     return new Date().getTime()
 }
+
+const NS_PER_MS = 1000000;
+const MS_PER_S = 1000;
 
 /*
  * Convert a domain name to the standard url associated for the measurementFunction
  * Return an object containing both url:standardurl and protocol:protocol used for requests
  */
-var toStandardUrl = function(websiteUrl){
+const toStandardUrl = function(websiteUrl){
     const splitDotUrl = websiteUrl.split('.');
     const splitDoubleDotUrl = websiteUrl.split(':');
     let returnUrl = websiteUrl;
@@ -39,7 +42,7 @@ var toStandardUrl = function(websiteUrl){
  * Realizes a ping measure to see if host is alive
  * Function should return an Observable
  */
-var pingMeasure = function(websiteUrl){
+const pingMeasure = function(websiteUrl){
     return Rx.Observable.create(obs => {
         ping.promise.probe(websiteUrl, {min_reply: config.pingRepeat})
         .then(res => {
@@ -60,7 +63,7 @@ var pingMeasure = function(websiteUrl){
 /*
  * Function called as a callback in both httpMeasure and httpsMeasure
  */
-var requestCallBackFunction = function(res, obs){
+const requestCallBackFunction = function(res, obs, startTime){
     const statusCode = res.statusCode;
     if (statusCode !== 200) {
         const error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
@@ -104,7 +107,7 @@ var requestCallBackFunction = function(res, obs){
             obs.next({
                 firstByteDelay: {
                     timestamp: now(),
-                    value: firstReceiveDelay[1]/1000000
+                    value: firstReceiveDelay[1]/NS_PER_MS
                 }
             });
         });
@@ -115,7 +118,7 @@ var requestCallBackFunction = function(res, obs){
             obs.next({
                 lastByteDelay: {
                     timestamp: now(),
-                    value: lastReceiveDelay[1]/1000000
+                    value: lastReceiveDelay[1]/NS_PER_MS
                 }
             });
         });
@@ -128,11 +131,11 @@ var requestCallBackFunction = function(res, obs){
  * Returns an observable we can listen to obtain the datanodes
  * Datanode : {timestamp: now(), value: dataNodeValue}
  */
-var httpMeasure = function(websiteUrl){
+const httpMeasure = function(websiteUrl){
     return Rx.Observable.create(obs => {
         const startTime = process.hrtime();
         const req = http.get(websiteUrl, res => {
-            requestCallBackFunction(res,obs);
+            requestCallBackFunction(res,obs,startTime);
         });
         req.on('error', err => {
                 console.error(`Got error: ${err.message}`);
@@ -143,7 +146,7 @@ var httpMeasure = function(websiteUrl){
                 obs.next({
                     dnsLookupDelay: {
                         timestamp: now(),
-                        value: dnsLookupDelay[1]/1000000
+                        value: dnsLookupDelay[1]/NS_PER_MS
                     }
                 })
             })
@@ -152,7 +155,7 @@ var httpMeasure = function(websiteUrl){
                 obs.next({
                     tcpConnectionDelay: {
                         timestamp: now(),
-                        value: tcpConnectionDelay[1]/1000000
+                        value: tcpConnectionDelay[1]/NS_PER_MS
                     }
                 })
             })
@@ -166,7 +169,7 @@ var httpMeasure = function(websiteUrl){
  * Returns an observable we can listen to obtain the datanodes
  * Datanode : {timestamp: now(), value: dataNodeValue}
  */
-var httpsMeasure = function(websiteUrl){
+const httpsMeasure = function(websiteUrl){
     return Rx.Observable.create(obs => {
         const startTime = process.hrtime();
         const req = https.get(websiteUrl, res => {
@@ -181,7 +184,7 @@ var httpsMeasure = function(websiteUrl){
                 obs.next({
                     dnsLookupDelay: {
                         timestamp: now(),
-                        value: dnsLookupDelay[1]/1000000
+                        value: dnsLookupDelay[1]/NS_PER_MS
                     }
                 })
             })
@@ -190,7 +193,7 @@ var httpsMeasure = function(websiteUrl){
                 obs.next({
                     tcpConnectionDelay: {
                         timestamp: now(),
-                        value: tcpConnectionDelay[1]/1000000
+                        value: tcpConnectionDelay[1]/NS_PER_MS
                     }
                 })
             })
@@ -199,7 +202,7 @@ var httpsMeasure = function(websiteUrl){
                 obs.next({
                     tlsHandshakeDelay: {
                         timestamp: now(),
-                        value: tlsHandshakeDelay[1]/1000000
+                        value: tlsHandshakeDelay[1]/NS_PER_MS
                     }
                 })
             })
@@ -213,7 +216,7 @@ var httpsMeasure = function(websiteUrl){
  * Function chooses the relevant protocol considering the given website
  * Function converts eventual domain name to the proper url to request
  */
-var measurePerformance = function(website,checkInterval){
+const measurePerformance = function(website,checkInterval){
     /*
      * We have to make a first request to know if we are going to request the server
      * on the appropriate url. If we obtain a shouldRedirect=true we are going to change trueUrl
@@ -229,16 +232,16 @@ var measurePerformance = function(website,checkInterval){
         measurementFunction(trueUrl).subscribe({
             next: data => {
                 if(data.statusCode){
-                    let finalUrl = toStandardUrl(data.trueLocation).url;
-                    let finalProtocol = toStandardUrl(data.trueLocation).protocol;
-                    let finalMeasurementFunction = httpMeasure;
+                    var finalUrl = toStandardUrl(data.trueLocation).url;
+                    var finalProtocol = toStandardUrl(data.trueLocation).protocol;
+                    var finalMeasurementFunction = httpMeasure;
                     if(data.shouldRedirect){
                         if (finalProtocol === 'https'){
                             finalMeasurementFunction = httpsMeasure;
                         }
                     }
-                    setInterval(trueUrl => {
-                        finalMeasurementFunction(trueUrl).subscribe({
+                    setInterval(() => {
+                        finalMeasurementFunction(finalUrl).subscribe({
                             next: data => {
                                 obs.next(data)
                             },
@@ -246,7 +249,7 @@ var measurePerformance = function(website,checkInterval){
                                 obs.error(err)
                             }
                         })
-                    },checkInterval*1000);
+                    },checkInterval*MS_PER_S);
                 };
             },
             error: err => {
@@ -256,4 +259,5 @@ var measurePerformance = function(website,checkInterval){
     });
 }
 
+//EXPORT
 module.exports = measurePerformance
