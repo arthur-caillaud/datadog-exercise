@@ -4,6 +4,9 @@ const config = require('./config.json');
 const http = require('http');
 const https = require('https');
 
+const NS_PER_MS = 1000000;
+const MS_PER_S = 1000;
+
 /*
  * Function used to timestamp datanodes
  * Function returns the number of milliseconds since January 1, 1970
@@ -12,8 +15,9 @@ const now = function(){
     return new Date().getTime()
 }
 
-const NS_PER_MS = 1000000;
-const MS_PER_S = 1000;
+const toMilliSeconds = function(prcessHourTime){
+    return prcessHourTime[0]*MS_PER_S+prcessHourTime[1]/NS_PER_MS
+}
 
 /*
  * Convert a domain name to the standard url associated for the measurementFunction
@@ -107,7 +111,7 @@ const requestCallBackFunction = function(res, obs, startTime){
             obs.next({
                 firstByteDelay: {
                     timestamp: now(),
-                    value: firstReceiveDelay[1]/NS_PER_MS
+                    value: toMilliSeconds(firstReceiveDelay)
                 }
             });
         });
@@ -118,7 +122,7 @@ const requestCallBackFunction = function(res, obs, startTime){
             obs.next({
                 lastByteDelay: {
                     timestamp: now(),
-                    value: lastReceiveDelay[1]/NS_PER_MS
+                    value: toMilliSeconds(lastReceiveDelay)
                 }
             });
         });
@@ -146,7 +150,7 @@ const httpMeasure = function(websiteUrl){
                 obs.next({
                     dnsLookupDelay: {
                         timestamp: now(),
-                        value: dnsLookupDelay[1]/NS_PER_MS
+                        value: toMilliSeconds(dnsLookupDelay)
                     }
                 })
             })
@@ -155,7 +159,7 @@ const httpMeasure = function(websiteUrl){
                 obs.next({
                     tcpConnectionDelay: {
                         timestamp: now(),
-                        value: tcpConnectionDelay[1]/NS_PER_MS
+                        value: toMilliSeconds(tcpConnectionDelay)
                     }
                 })
             })
@@ -173,7 +177,7 @@ const httpsMeasure = function(websiteUrl){
     return Rx.Observable.create(obs => {
         const startTime = process.hrtime();
         const req = https.get(websiteUrl, res => {
-            requestCallBackFunction(res,obs);
+            requestCallBackFunction(res,obs,startTime);
         });
         req.on('error', err => {
                 obs.error(err);
@@ -184,7 +188,7 @@ const httpsMeasure = function(websiteUrl){
                 obs.next({
                     dnsLookupDelay: {
                         timestamp: now(),
-                        value: dnsLookupDelay[1]/NS_PER_MS
+                        value: toMilliSeconds(dnsLookupDelay)
                     }
                 })
             })
@@ -193,7 +197,7 @@ const httpsMeasure = function(websiteUrl){
                 obs.next({
                     tcpConnectionDelay: {
                         timestamp: now(),
-                        value: tcpConnectionDelay[1]/NS_PER_MS
+                        value: toMilliSeconds(tcpConnectionDelay)
                     }
                 })
             })
@@ -202,7 +206,7 @@ const httpsMeasure = function(websiteUrl){
                 obs.next({
                     tlsHandshakeDelay: {
                         timestamp: now(),
-                        value: tlsHandshakeDelay[1]/NS_PER_MS
+                        value: toMilliSeconds(tlsHandshakeDelay)
                     }
                 })
             })

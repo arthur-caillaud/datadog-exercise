@@ -1,3 +1,4 @@
+const Rx = require('rxjs');
 const measurePerformance = require('./measurePerformance');
 
 /*
@@ -25,50 +26,54 @@ const computeData = function(website,checkInterval){
         let startTime = now();
         Object.keys(dataObject).forEach(dataKey => {
             tenMinStats[dataKey] = {};
-            if(dataObject[dataKey].tenMinData.length > 0){
-                let avgSum = 0;
-                let tenMinMin;
-                let tenMinMax;
-                if(dataObject[dataKey].tenMinMin && startTime - dataObject[dataKey].tenMinMin.timestamp < timeframe){
-                    tenMinMin = dataObject[dataKey].tenMinMin;
-                }
-                if(dataObject[dataKey].tenMinMax && startTime - dataObject[dataKey].tenMinMax.timestamp < timeframe){
-                    tenMinMax = dataObject[dataKey].tenMinMax;
-                }
-                dataObject[dataKey].tenMinData.forEach((dataNode,index,dataArray) => {
+            if(dataKey === "statusCode"){
+            }
+            else{
+                if(dataObject[dataKey].tenMinData.length > 0){
+                    let avgSum = 0;
+                    let tenMinMin;
+                    let tenMinMax;
+                    if(dataObject[dataKey].tenMinMin && startTime - dataObject[dataKey].tenMinMin.timestamp < timeframe){
+                        tenMinMin = dataObject[dataKey].tenMinMin;
+                    }
+                    if(dataObject[dataKey].tenMinMax && startTime - dataObject[dataKey].tenMinMax.timestamp < timeframe){
+                        tenMinMax = dataObject[dataKey].tenMinMax;
+                    }
+                    dataObject[dataKey].tenMinData.forEach((dataNode,index,dataArray) => {
+                        /*
+                         * If this datanode timestamp is older than 10 minutes, we remove
+                         * it from the data array.
+                         * If not we keep it for our analytics computation
+                         */
+                        if(startTime - dataNode.timestamp > timeframe){
+                            if (index > -1) {
+                                dataArray.splice(index, 1);
+                            }
+                        }
+                        /* This datanode is still valid*/
+                        else {
+                            avgSum += dataNode.value;
+                            if(!tenMinMin || dataNode.value < tenMinMin.value){
+                                tenMinMin = dataNode
+                            }
+                            if(!tenMinMax || dataNode.value > tenMinMax.value){
+                                tenMinMax = dataNode
+                            }
+                        }
+                    });
                     /*
-                     * If this datanode timestamp is older than 10 minutes, we remove
-                     * it from the data array.
-                     * If not we keep it for our analytics computation
+                     * We modify dataObject so that it keeps track of the new values
                      */
-                    if(startTime - dataNode.timestamp > timeframe){
-                        if (index > -1) {
-                            dataArray.splice(index, 1);
-                        }
-                    }
-                    /* This datanode is still valid*/
-                    else {
-                        avgSum += dataNode.value;
-                        if(!tenMinMin || dataNode.value < tenMinMin.value){
-                            tenMinMin = dataNode
-                        }
-                        if(!tenMinMax || dataNode.value > tenMinMax.value){
-                            tenMinMax = dataNode
-                        }
-                    }
-                });
-                /*
-                 * We modify dataObject so that it keeps track of the new values
-                 */
-                dataObject[dataKey].tenMinAvg = avgSum/dataObject[dataKey].tenMinData.length;
-                dataObject[dataKey].tenMinMin = tenMinMin;
-                dataObject[dataKey].tenMinMax = tenMinMax;
-                /*
-                 * We enter these new values in tenMinStats object as it what this function returns
-                 */
-                tenMinStats[dataKey].average = dataObject[dataKey].tenMinAvg;
-                tenMinStats[dataKey].minimum = dataObject[dataKey].tenMinMin.value;
-                tenMinStats[dataKey].maximum = dataObject[dataKey].tenMinMax.value;
+                    dataObject[dataKey].tenMinAvg = avgSum/dataObject[dataKey].tenMinData.length;
+                    dataObject[dataKey].tenMinMin = tenMinMin;
+                    dataObject[dataKey].tenMinMax = tenMinMax;
+                    /*
+                     * We enter these new values in tenMinStats object as it is what this function returns
+                     */
+                    tenMinStats[dataKey].average = dataObject[dataKey].tenMinAvg;
+                    tenMinStats[dataKey].minimum = dataObject[dataKey].tenMinMin.value;
+                    tenMinStats[dataKey].maximum = dataObject[dataKey].tenMinMax.value;
+                }
             }
         });
         let endTime = now();
@@ -124,7 +129,7 @@ const computeData = function(website,checkInterval){
                 dataObject[dataKey].hourMin = hourMin;
                 dataObject[dataKey].hourMax = hourMax;
                 /*
-                 * We enter these new values in tenMinStats object as it what this function returns
+                 * We enter these new values in tenMinStats object as it is what this function returns
                  */
                 hourStats[dataKey].average = dataObject[dataKey].hourAvg;
                 hourStats[dataKey].minimum = dataObject[dataKey].hourMin.value;
@@ -170,4 +175,4 @@ const computeData = function(website,checkInterval){
     }, 60*MS_PER_S);
 }
 
-computeData("hyris.tv",5)
+computeData("hyris.tv",1)
