@@ -43,19 +43,29 @@ const toStandardUrl = function(websiteUrl){
 }
 
 /*
+ * Converts an url into domain name
+ * Mainly used for pingMeasure function
+ */
+const toDomainName = function(websiteUrl){
+    const slashSplitUrl = websiteUrl.split('/')
+    if (slashSplitUrl.length > 1){
+        return slashSplitUrl[2]
+    }
+    return slashSplitUrl[0]
+}
+/*
  * Realizes a ping measure to see if host is alive
  * Function should return an Observable
  */
 const pingMeasure = function(websiteUrl){
     return Rx.Observable.create(obs => {
-        ping.promise.probe(websiteUrl, {min_reply: config.pingRepeat})
+        ping.promise.probe(toDomainName(websiteUrl))
         .then(res => {
             obs.next({
-                timestamp: now(),
-                isAlive: res.alive,
-                minPing: res.min,
-                maxPing: res.max,
-                avgPing: res.avg
+                ping: {
+                    timestamp: now(),
+                    isAlive: res.alive
+                }
             })
         })
         .catch(err => {
@@ -246,6 +256,14 @@ const measurePerformance = function(website,checkInterval){
                     }
                     setInterval(() => {
                         finalMeasurementFunction(finalUrl).subscribe({
+                            next: data => {
+                                obs.next(data)
+                            },
+                            error: err => {
+                                obs.error(err)
+                            }
+                        });
+                        pingMeasure(finalUrl).subscribe({
                             next: data => {
                                 obs.next(data)
                             },

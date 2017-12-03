@@ -18,15 +18,54 @@ const computeData = function(website,checkInterval){
     let dataObject = {};
 
     /*
-     * This function cleans the dataobject from too old data nodes so that the computation time remains stable
+     * This function cleans the dataobject from too old data nodes (older than two minutes)
+     * so that the computation time remains stable
+     * We then compute the availibility analytics and return them in an availibilityStats object
+     */
+    const computeAndCleanAvailibilityStats = function(timeframe){
+        let availibilityStats = {};
+        let startTime = now();
+        if (dataObject.ping && dataObject.ping.twoMinData.length > 0){
+            dataObject.ping.twoMinData.forEach((dataNode,index,dataArray) => {
+                /*
+                 * If this datanode timestamp is older than 10 minutes, we remove
+                 * it from the data array.
+                 * If not we keep it for our analytics computation
+                 */
+                if(startTime - dataNode.timestamp > timeframe){
+                    if (index > -1) {
+                        dataArray.splice(index, 1);
+                    }
+                }
+                /* This datanode is still valid*/
+                else {
+                    if(!availibilityStats.total){
+                        availibilityStats.total = 0;
+                    }
+                    if(!availibilityStats.ratio){
+                        availibilityStats.ratio = 0;
+                    }
+                    if(dataNode.isAlive){
+                        availibilityStats.ratio += 1;
+                    }
+                    availibilityStats.total += 1;
+                }
+            })
+        }
+        availibilityStats.ratio = availibilityStats.ratio/availibilityStats.total;
+        return availibilityStats
+    }
+    /*
+     * This function cleans the dataobject from too old data nodes (older than 10 minutes)
+     * so that the computation time remains stable
      * We then compute all the analytics we want to return in the tenMinStats object
      */
     const computeAndCleanTenMinutesStats = function(timeframe){
         let tenMinStats = {};
         let startTime = now();
         Object.keys(dataObject).forEach(dataKey => {
-            tenMinStats[dataKey] = {};
             if(dataKey === "statusCode"){
+                tenMinStats[dataKey] = {};
                 dataObject.statusCode.tenMinData.forEach((dataNode,index,dataArray) => {
                     /*
                      * If this datanode timestamp is older than 10 minutes, we remove
@@ -56,7 +95,8 @@ const computeData = function(website,checkInterval){
                     }
                 })
             }
-            else{
+            else if (dataKey !== 'ping'){
+                tenMinStats[dataKey] = {};
                 if(dataObject[dataKey].tenMinData.length > 0){
                     let avgSum = 0;
                     let tenMinMin;
@@ -105,12 +145,13 @@ const computeData = function(website,checkInterval){
             }
         });
         let endTime = now();
-        tenMinStats.computationDuration = endTime - startTime;
+        tenMinStats.computationDuration = endTime - startTime + 'ms';
         return tenMinStats
     }
 
     /*
-     * This function cleans the dataobject from too old data nodes so that the computation time remains stable
+     * This function cleans the dataobject from too old data nodes (older than 60 minutes)
+     * so that the computation time remains stable
      * We then compute all the analytics we want to return in the hourStats object
      */
     const computeAndCleanHourStats = function(timeframe){
@@ -148,7 +189,7 @@ const computeData = function(website,checkInterval){
                     }
                 })
             }
-            else{
+            else if(dataKey !== 'ping'){
                 if(dataObject[dataKey].hourData.length > 0){
                     let avgSum = 0;
                     let hourMin;
@@ -197,14 +238,23 @@ const computeData = function(website,checkInterval){
             }
         });
         let endTime = now();
-        hourStats.computationDuration = endTime - startTime;
+        hourStats.computationDuration = endTime - startTime + 'ms';
         return hourStats
     }
 
     measurePerformance(website,checkInterval).subscribe({
         next: data => {
             Object.keys(data).forEach(key => {
-                if(key !== "shouldRedirect" && key !== "trueLocation"){
+                if(key === "ping"){
+                    if (!dataObject[key]){
+                        dataObject[key] = {};
+                    }
+                    if (!dataObject[key].twoMinData){
+                        dataObject[key].twoMinData = [];
+                    }
+                    dataObject[key].twoMinData.push(data[key]);
+                }
+                else if(key !== "shouldRedirect" && key !== "trueLocation"){
                     if (!dataObject[key]){
                         dataObject[key] = {};
                     }
@@ -227,6 +277,9 @@ const computeData = function(website,checkInterval){
         tenMinutesAnalytics = computeAndCleanTenMinutesStats(10*S_PER_MIN*MS_PER_S);
         console.log('\n\n----LAST TEN MINUTES ANALYTICS----\n\n')
         console.log(tenMinutesAnalytics);
+        availibilityStats = computeAndCleanAvailibilityStats(2*S_PER_MIN*MS_PER_S);
+        console.log('\n\n----AVAILIBILITY STATS----\n\n')
+        console.log(availibilityStats);
     }, 10*MS_PER_S);
     setInterval(() => {
         hourAnalytics = computeAndCleanHourStats(60*S_PER_MIN*MS_PER_S);
@@ -235,4 +288,4 @@ const computeData = function(website,checkInterval){
     }, 60*MS_PER_S);
 }
 
-computeData("hyris.tv",1)
+computeData("gizmodo.com",1)
