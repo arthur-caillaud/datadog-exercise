@@ -288,4 +288,4 @@ const computeData = function(website,checkInterval){
     }, 60*MS_PER_S);
 }
 
-computeData("gizmodo.com",1)
+computeData("google.com",3)
