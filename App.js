@@ -1,7 +1,7 @@
-const askForInput = require('./askForInput');
-const checkForInternetConnection = require('./checkForInternetConnection');
-const appConsole = require('./console');
-const measurePerformance = require('./measurePerformance');
+const askForInput = require('./console/askForInput');
+const checkForInternetConnection = require('./exception/checkForInternetConnection');
+const appConsole = require('./console/console');
+const measurePerformance = require('./analytics/measurePerformance');
 
 appConsole.log("Looking for an internet connection...")
 checkForInternetConnection().subscribe({

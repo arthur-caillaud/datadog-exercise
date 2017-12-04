@@ -1,8 +1,8 @@
 const ping = require('ping');
 const Rx = require('rxjs');
-const config = require('./config.json');
 const http = require('http');
 const https = require('https');
+const checkForInternetConnection = require('../exception/checkForInternetConnection');
 
 const NS_PER_MS = 1000000;
 const MS_PER_S = 1000;
@@ -53,6 +53,7 @@ const toDomainName = function(websiteUrl){
     }
     return slashSplitUrl[0]
 }
+
 /*
  * Realizes a ping measure to see if host is alive
  * Function should return an Observable
@@ -61,6 +62,27 @@ const pingMeasure = function(websiteUrl){
     return Rx.Observable.create(obs => {
         ping.promise.probe(toDomainName(websiteUrl))
         .then(res => {
+            if(!res.alive){
+                /*
+                 * If ping test fails we have to test for internet connection before asserting
+                 * server is really down.
+                 */
+                checkForInternetConnection().subscribe({
+                    next: data => {
+                        if (data.internetConnection){
+                            obs.next({
+                                ping: {
+                                    timestamp: now(),
+                                    isAlive: res.false
+                                }
+                            })
+                        }
+                    },
+                    error: err => {
+                        obs.error("Internet connection not stable enough for these tests...")
+                    }
+                })
+            }
             obs.next({
                 ping: {
                     timestamp: now(),
@@ -80,7 +102,6 @@ const pingMeasure = function(websiteUrl){
 const requestCallBackFunction = function(res, obs, startTime){
     const statusCode = res.statusCode;
     if (statusCode !== 200) {
-        const error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`);
         if (statusCode === 301 || statusCode === 302) {
             // We have to change the url used for further requests as the server wants to redirect us
             obs.next({
@@ -90,11 +111,11 @@ const requestCallBackFunction = function(res, obs, startTime){
                 },
                 shouldRedirect: true,
                 trueLocation: res.headers.location
-            })
-            obs.error(error.message);
+            });
             res.resume();
         }
         else {
+            const error = new Error('Request Failed.\n' + `Status Code: ${statusCode}`)
             obs.next({
                 statusCode: {
                     timestamp: now(),
@@ -246,10 +267,13 @@ const measurePerformance = function(website,checkInterval){
         measurementFunction(trueUrl).subscribe({
             next: data => {
                 if(data.statusCode){
-                    var finalUrl = toStandardUrl(data.trueLocation).url;
-                    var finalProtocol = toStandardUrl(data.trueLocation).protocol;
-                    var finalMeasurementFunction = httpMeasure;
+                    let finalUrl = trueUrl;
+                    let finalProtocol = protocol;
+                    let finalMeasurementFunction = httpMeasure;
                     if(data.shouldRedirect){
+                        console.log("Server is trying to redirect us.\nChanging url used for monitoring.");
+                        finalUrl = toStandardUrl(data.trueLocation).url;
+                        finalProtocol = toStandardUrl(data.trueLocation).protocol;
                         if (finalProtocol === 'https'){
                             finalMeasurementFunction = httpsMeasure;
                         }

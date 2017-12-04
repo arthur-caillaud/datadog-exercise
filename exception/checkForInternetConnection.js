@@ -1,17 +1,14 @@
 const Rx = require('rxjs');
 const DNS = require('dns');
 
-module.exports = function checkInternet(websiteUrl) {
+module.exports = function checkInternet() {
     return Rx.Observable.create(obs => {
-        const startTime = new Date();
-        DNS.lookup(websiteUrl,function(err) {
+        DNS.lookup("www.google.fr",function(err) {
             if (err && err.code == "ENOTFOUND") {
                 obs.error(err);
             } else {
-                const dnsLookupDelay = new Date() - startTime
                 obs.next({
-                    internetConnection: true,
-                    dnsLookupDelay: dnsLookupDelay
+                    internetConnection: true
                 });
             }
         });
