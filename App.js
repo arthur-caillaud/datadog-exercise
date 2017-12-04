@@ -1,9 +1,9 @@
 const askForInput = require('./console/askForInput');
 const checkForInternetConnection = require('./exception/checkForInternetConnection');
-const appConsole = require('./console/console');
-const measurePerformance = require('./analytics/measurePerformance');
+const console = require('./console/console');
+const computeMetrics = require('./analytics/computeMetrics');
 
-appConsole.log("Looking for an internet connection...")
+console.log("Looking for an internet connection...")
 checkForInternetConnection().subscribe({
     next: () => {
         askForInput().subscribe({
@@ -11,23 +11,23 @@ checkForInternetConnection().subscribe({
                 const websitesArray = input.websitesArray;
                 const checkIntervals = input.checkIntervals;
                 websitesArray.forEach((website,index) => {
-                    const websitePerformanceObservable = measurePerformance(website, checkIntervals[index]);
-                    websitePerformanceObservable.subscribe({
+                    const computeMetricsObservable = computeMetrics(website, checkIntervals[index]);
+                    computeMetricsObservable.subscribe({
                         next: data => {
-                            console.log(website, data);
+                            console.logData(data);
                         },
                         error: err => {
-                            appConsole.error(err);
+                            console.error(err);
                         }
                     });
                 })
             },
             error: err => {
-                appConsole.error(err)
+                console.error(err)
             }
         });
     },
     error: err => {
-        appConsole.error('This application needs an internet connection. Please connect to internet.')
+        console.error('This application needs an internet connection. Please connect to internet.')
     }
 })

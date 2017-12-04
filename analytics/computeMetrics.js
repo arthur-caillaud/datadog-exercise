@@ -268,24 +268,34 @@ const computeData = function(website,checkInterval){
                     dataObject[key].hourData.push(data[key]);
                 }
             });
+            console.log(dataObject);
         },
         error: err => {
             console.error(err)
         }
     });
-    setInterval(() => {
-        tenMinutesAnalytics = computeAndCleanTenMinutesStats(10*S_PER_MIN*MS_PER_S);
-        console.log('\n\n----LAST TEN MINUTES ANALYTICS----\n\n')
-        console.log(tenMinutesAnalytics);
-        availibilityStats = computeAndCleanAvailibilityStats(2*S_PER_MIN*MS_PER_S);
-        console.log('\n\n----AVAILIBILITY STATS----\n\n')
-        console.log(availibilityStats);
-    }, 10*MS_PER_S);
-    setInterval(() => {
-        hourAnalytics = computeAndCleanHourStats(60*S_PER_MIN*MS_PER_S);
-        console.log('\n\n----LAST HOUR ANALYTICS----\n\n')
-        console.log(hourAnalytics);
-    }, 60*MS_PER_S);
+    return Rx.Observable.create(obs => {
+        setInterval(() => {
+            tenMinutesAnalytics = computeAndCleanTenMinutesStats(10*S_PER_MIN*MS_PER_S);
+            availibilityStats = computeAndCleanAvailibilityStats(2*S_PER_MIN*MS_PER_S);
+            obs.next({
+                type: 'tenMinutesAnalytics',
+                data: tenMinutesAnalytics
+            });
+            obs.next({
+                type: 'availibilityStats',
+                data: availibilityStats
+            });
+        }, 10*MS_PER_S);
+        setInterval(() => {
+            hourAnalytics = computeAndCleanHourStats(60*S_PER_MIN*MS_PER_S);
+            obs.next({
+                type: 'hourAnalytics',
+                data: hourAnalytics
+            });
+        }, 60*MS_PER_S);
+    })
 }
 
-computeData("google.com",3)
+//EXPORT
+module.exports = computeData

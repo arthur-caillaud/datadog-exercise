@@ -101,6 +101,7 @@ const pingMeasure = function(websiteUrl){
  */
 const requestCallBackFunction = function(res, obs, startTime){
     const statusCode = res.statusCode;
+    console.log(statusCode)
     if (statusCode !== 200) {
         if (statusCode === 301 || statusCode === 302) {
             // We have to change the url used for further requests as the server wants to redirect us
@@ -122,8 +123,28 @@ const requestCallBackFunction = function(res, obs, startTime){
                     value: statusCode
                 },
                 shouldRedirect: false,
-                trueLocation: res.headers.location
-            })
+                trueLocation: res.headers.location,
+                dnsLookupDelay: {
+                    timestamp: now(),
+                    value: 0
+                },
+                tcpConnectionDelay: {
+                    timestamp: now(),
+                    value: 0
+                },
+                tlsHandshakeDelay: {
+                    timestamp: now(),
+                    value: 0
+                },
+                firstByteDelay: {
+                    timestamp: now(),
+                    value: 0
+                },
+                lastByteDelay: {
+                    timestamp: now(),
+                    value: 0
+                }
+            });
             obs.error(error.message);
             res.resume();
         }
@@ -173,7 +194,25 @@ const httpMeasure = function(websiteUrl){
             requestCallBackFunction(res,obs,startTime);
         });
         req.on('error', err => {
-                console.error(`Got error: ${err.message}`);
+            obs.next({
+                dnsLookupDelay: {
+                    timestamp: now(),
+                    value: 0
+                },
+                tcpConnectionDelay: {
+                    timestamp: now(),
+                    value: 0
+                },
+                firstByteDelay: {
+                    timestamp: now(),
+                    value: 0
+                },
+                lastByteDelay: {
+                    timestamp: now(),
+                    value: 0
+                }
+            });
+            obs.error(`Got error: ${err.message}`);
         });
         req.on('socket', socket => {
             socket.on('lookup', () => {
@@ -211,7 +250,29 @@ const httpsMeasure = function(websiteUrl){
             requestCallBackFunction(res,obs,startTime);
         });
         req.on('error', err => {
-                obs.error(err);
+            obs.next({
+                dnsLookupDelay: {
+                    timestamp: now(),
+                    value: 0
+                },
+                tcpConnectionDelay: {
+                    timestamp: now(),
+                    value: 0
+                },
+                tlsHandshakeDelay: {
+                    timestamp: now(),
+                    value: 0
+                },
+                firstByteDelay: {
+                    timestamp: now(),
+                    value: 0
+                },
+                lastByteDelay: {
+                    timestamp: now(),
+                    value: 0
+                }
+            });
+            obs.error(err);
         });
         req.on('socket', socket => {
             socket.on('lookup', () => {
@@ -266,37 +327,35 @@ const measurePerformance = function(website,checkInterval){
         }
         measurementFunction(trueUrl).subscribe({
             next: data => {
-                if(data.statusCode){
-                    let finalUrl = trueUrl;
-                    let finalProtocol = protocol;
-                    let finalMeasurementFunction = httpMeasure;
-                    if(data.shouldRedirect){
-                        console.log("Server is trying to redirect us.\nChanging url used for monitoring.");
-                        finalUrl = toStandardUrl(data.trueLocation).url;
-                        finalProtocol = toStandardUrl(data.trueLocation).protocol;
-                        if (finalProtocol === 'https'){
-                            finalMeasurementFunction = httpsMeasure;
-                        }
+                let finalUrl = trueUrl;
+                let finalProtocol = protocol;
+                let finalMeasurementFunction = httpMeasure;
+                if(data.shouldRedirect){
+                    console.log("Server is trying to redirect us.\nChanging url used for monitoring.");
+                    finalUrl = toStandardUrl(data.trueLocation).url;
+                    finalProtocol = toStandardUrl(data.trueLocation).protocol;
+                    if (finalProtocol === 'https'){
+                        finalMeasurementFunction = httpsMeasure;
                     }
-                    setInterval(() => {
-                        finalMeasurementFunction(finalUrl).subscribe({
-                            next: data => {
-                                obs.next(data)
-                            },
-                            error: err => {
-                                obs.error(err)
-                            }
-                        });
-                        pingMeasure(finalUrl).subscribe({
-                            next: data => {
-                                obs.next(data)
-                            },
-                            error: err => {
-                                obs.error(err)
-                            }
-                        })
-                    },checkInterval*MS_PER_S);
-                };
+                }
+                setInterval(() => {
+                    finalMeasurementFunction(finalUrl).subscribe({
+                        next: data => {
+                            obs.next(data)
+                        },
+                        error: err => {
+                            obs.error(err)
+                        }
+                    });
+                    pingMeasure(finalUrl).subscribe({
+                        next: data => {
+                            obs.next(data)
+                        },
+                        error: err => {
+                            obs.error(err)
+                        }
+                    })
+                },checkInterval*MS_PER_S);
             },
             error: err => {
                 console.error(err);
