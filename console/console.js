@@ -29,8 +29,6 @@ module.exports.logData = function logData(data){
                 Object.keys(analytics.statusCode).forEach(statusCode => {
                     statusCodeTitles.push(statusCode)
                     statusCodeLine.push(analytics.statusCode[statusCode]);
-                    console.log(statusCodeTitles)
-                    console.log(statusCodeLine)
                 })
             }
         });
@@ -58,8 +56,6 @@ module.exports.logData = function logData(data){
                 Object.keys(analytics.statusCode).forEach(statusCode => {
                     statusCodeTitles.push(statusCode)
                     statusCodeLine.push(analytics.statusCode[statusCode]);
-                    console.log(statusCodeTitles)
-                    console.log(statusCodeLine)
                 })
             }
         });

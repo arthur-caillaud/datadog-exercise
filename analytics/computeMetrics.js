@@ -268,7 +268,6 @@ const computeData = function(website,checkInterval){
                     dataObject[key].hourData.push(data[key]);
                 }
             });
-            console.log(dataObject);
         },
         error: err => {
             console.error(err)
