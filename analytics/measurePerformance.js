@@ -73,7 +73,7 @@ const pingMeasure = function(websiteUrl){
                             obs.next({
                                 ping: {
                                     timestamp: now(),
-                                    isAlive: res.false
+                                    isAlive: false
                                 }
                             })
                         }
@@ -83,12 +83,14 @@ const pingMeasure = function(websiteUrl){
                     }
                 })
             }
-            obs.next({
-                ping: {
-                    timestamp: now(),
-                    isAlive: res.alive
-                }
-            })
+            else {
+                obs.next({
+                    ping: {
+                        timestamp: now(),
+                        isAlive: res.alive
+                    }
+                })
+            }
         })
         .catch(err => {
             obs.error(err);
@@ -101,6 +103,7 @@ const pingMeasure = function(websiteUrl){
  */
 const requestCallBackFunction = function(res, obs, startTime){
     const statusCode = res.statusCode;
+    console.log(statusCode);
     if (statusCode !== 200) {
         if (statusCode === 301 || statusCode === 302) {
             // We have to change the url used for further requests as the server wants to redirect us
@@ -194,9 +197,9 @@ const httpMeasure = function(websiteUrl){
         });
         req.on('error', err => {
             obs.next({
-                dnsLookupDelay: {
+                statusCode: {
                     timestamp: now(),
-                    value: 0
+                    value: 'ENOTFOUND'
                 },
                 tcpConnectionDelay: {
                     timestamp: now(),
@@ -211,7 +214,6 @@ const httpMeasure = function(websiteUrl){
                     value: 0
                 }
             });
-            obs.error(`Got error: ${err.message}`);
         });
         req.on('socket', socket => {
             socket.on('lookup', () => {
@@ -250,9 +252,9 @@ const httpsMeasure = function(websiteUrl){
         });
         req.on('error', err => {
             obs.next({
-                dnsLookupDelay: {
+                statusCode: {
                     timestamp: now(),
-                    value: 0
+                    value: 'ENOTFOUND'
                 },
                 tcpConnectionDelay: {
                     timestamp: now(),
@@ -271,7 +273,6 @@ const httpsMeasure = function(websiteUrl){
                     value: 0
                 }
             });
-            obs.error(err);
         });
         req.on('socket', socket => {
             socket.on('lookup', () => {
@@ -327,7 +328,7 @@ const measurePerformance = function(website,checkInterval){
         measurementFunction(trueUrl).subscribe({
             next: data => {
                 console.log(data);
-                if(!data.statusCode){
+                if(data.statusCode){
                     let finalUrl = trueUrl;
                     let finalProtocol = protocol;
                     let finalMeasurementFunction = httpMeasure;
@@ -350,6 +351,7 @@ const measurePerformance = function(website,checkInterval){
                         });
                         pingMeasure(finalUrl).subscribe({
                             next: data => {
+                                console.log('ping',data)
                                 obs.next(data)
                             },
                             error: err => {
