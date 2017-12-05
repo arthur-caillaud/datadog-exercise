@@ -35,3 +35,6 @@ When internet connection is lost, user is asked to reconnect his internet connec
 <div align="center">
 <img src="internet-exception.png" alt="screen app" style="width: 600px;">
 </div>
+
+### Design enhancement
+Small modifications in this project (using Express.js for example) would make this code a backend server on which anyone could plug his own frontend application. Using libraries such as D3.js and implementing a websocket connection could make this app a real-time monitoring visualization application.
