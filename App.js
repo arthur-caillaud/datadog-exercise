@@ -14,7 +14,8 @@ checkForInternetConnection().subscribe({
                     const computeMetricsObservable = computeMetrics(website, checkIntervals[index]);
                     computeMetricsObservable.subscribe({
                         next: data => {
-                            console.logData(data);
+                            console.logData(website, data);
+                            console.logStatus(website, data);
                         },
                         error: err => {
                             console.error(err);

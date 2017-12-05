@@ -1,28 +1,47 @@
 require('console.table');
 
-module.exports.error = function error(message){
+function timestampToHour(timestamp){
+    // Create a new JavaScript Date object based on the timestamp
+    // multiplied by 1000 so that the argument is in milliseconds, not seconds.
+    var date = new Date(timestamp);
+    var hours = date.getHours();
+    // Minutes part from the timestamp
+    var minutes = "0" + date.getMinutes();
+    // Seconds part from the timestamp
+    var seconds = "0" + date.getSeconds();
+
+    // Will display time in 10:30:23 format
+    var formattedTime = hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
+    return formattedTime;
+}
+
+function error(message){
     console.error("\x1b[31m%s\x1b[0m",message);
 }
 
-module.exports.log = function log(message){
+function ok(message){
+    console.log("\x1b[32m%s\x1b[0m",message);
+}
+
+function log(message){
     console.log(message);
 }
 
-module.exports.logData = function logData(data){
-    if(data.type === 'tenMinutesAnalytics'){
-        let dataArray = [];
-        let statusCodeArray = [];
-        let titles = ['Data label','Minimum','Average','Maximum'];
-        let statusCodeTitles = [];
-        let statusCodeLine = [];
+function logData(website, data){
+    let dataArray = [];
+    let statusCodeArray = [];
+    let titles = ['Data label','Minimum','Average','Maximum'];
+    let statusCodeTitles = [];
+    let statusCodeLine = [];
+    if(data.type === 'tenMinutesAnalytics' || data.type === 'hourAnalytics'){
         const analytics = data.data
         Object.keys(analytics).forEach(dataType => {
             if(dataType !== 'computationDuration' && dataType !== 'statusCode'){
                 let tableLine = [];
                 tableLine.push(dataType);
-                tableLine.push(analytics[dataType].minimum);
-                tableLine.push(analytics[dataType].average);
-                tableLine.push(analytics[dataType].maximum);
+                tableLine.push(analytics[dataType].minimum.toFixed(2));
+                tableLine.push(analytics[dataType].average.toFixed(2));
+                tableLine.push(analytics[dataType].maximum.toFixed(2));
                 dataArray.push(tableLine);
             }
             else if(dataType === 'statusCode'){
@@ -32,39 +51,40 @@ module.exports.logData = function logData(data){
                 })
             }
         });
-        console.log("\nTEN LAST MINUTES ANALYTICS");
+    }
+    if(data.type === 'tenMinutesAnalytics'){
+        console.log("\nTEN LAST MINUTES ANALYTICS ",website);
+        console.table(titles,dataArray);
+        console.log("STATUS CODES");
+        statusCodeTitles.forEach((label,index) => {
+            console.log(label, ' | ', statusCodeLine[index])
+        })
+    }
+    if(data.type === 'hourAnalytics'){
+        console.log("\nLAST HOUR ANALYTICS ",website);
         console.table(titles,dataArray);
         console.table(statusCodeTitles,statusCodeLine);
     }
-    else if(data.type === 'hourAnalytics'){
-        let dataArray = [];
-        let statusCodeArray = [];
-        let titles = ['Data label','Minimum','Average','Maximum'];
-        let statusCodeTitles = [];
-        let statusCodeLine = [];
-        const analytics = data.data
-        Object.keys(analytics).forEach(dataType => {
-            if(dataType !== 'computationDuration' && dataType !== 'statusCode'){
-                let tableLine = [];
-                tableLine.push(dataType);
-                tableLine.push(analytics[dataType].minimum);
-                tableLine.push(analytics[dataType].average);
-                tableLine.push(analytics[dataType].maximum);
-                dataArray.push(tableLine);
+}
+
+function logStatus(website,data){
+    if(data.type === 'availibilityStats'){
+        const logMessages = data.data.logMessages;
+        logMessages.forEach(message => {
+            if(message.type === 'down'){
+                error(website + ' IS DOWN. Availibility = ' + message.availibility + ' Time = ' + timestampToHour(message.timestamp));
             }
-            else if(dataType === 'statusCode'){
-                Object.keys(analytics.statusCode).forEach(statusCode => {
-                    statusCodeTitles.push(statusCode)
-                    statusCodeLine.push(analytics.statusCode[statusCode]);
-                })
+            else{
+                ok(website + ' RECOVERED. Availibility = ' + message.availibility + ' Time = ' + timestampToHour(message.timestamp))
             }
-        });
-        console.log("\nTEN LAST MINUTES ANALYTICS");
-        if(titles.length > 0 && dataArray.length > 0){
-            console.table(titles,dataArray);
-        }
-        if(statusCodeTitles.length > 0 && statusCodeLine.length > 0){
-            console.table(statusCodeTitles,statusCodeLine);
-        }
+        })
     }
+}
+
+module.exports = {
+    log,
+    ok,
+    error,
+    logData,
+    logStatus
 }

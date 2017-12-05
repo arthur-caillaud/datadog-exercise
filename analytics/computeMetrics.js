@@ -1,5 +1,6 @@
 const Rx = require('rxjs');
 const measurePerformance = require('./measurePerformance');
+const alerting = require('./alerting');
 
 /*
  * Function used to timestamp datanodes
@@ -16,6 +17,10 @@ const S_PER_MIN = 60;
 const computeData = function(website,checkInterval){
 
     let dataObject = {};
+    let availibilityStats = {
+        logMessages: [],
+        isAvailable: true
+    };
 
     /*
      * This function cleans the dataobject from too old data nodes (older than two minutes)
@@ -23,7 +28,6 @@ const computeData = function(website,checkInterval){
      * We then compute the availibility analytics and return them in an availibilityStats object
      */
     const computeAndCleanAvailibilityStats = function(timeframe){
-        let availibilityStats = {};
         let startTime = now();
         if (dataObject.ping && dataObject.ping.twoMinData.length > 0){
             dataObject.ping.twoMinData.forEach((dataNode,index,dataArray) => {
@@ -37,7 +41,7 @@ const computeData = function(website,checkInterval){
                         dataArray.splice(index, 1);
                     }
                 }
-                /* This datanode is still valid*/
+                // This datanode is still valid
                 else {
                     if(!availibilityStats.total){
                         availibilityStats.total = 0;
@@ -53,6 +57,32 @@ const computeData = function(website,checkInterval){
             })
         }
         availibilityStats.ratio = availibilityStats.ratio/availibilityStats.total;
+        if(availibilityStats.ratio < 0.8){
+            //Website is offline
+            if(availibilityStats.isAvailable){
+                //Website was online and is now offline
+                availibilityStats.statusChanged = true;
+            }
+            else{
+                //Website is still offline
+                availibilityStats.statusChanged = false;
+            }
+            availibilityStats.isAvailable = false
+        }
+        else {
+            //Webiste is online
+            if(!availibilityStats.isAvailable){
+                //Website was offline and is now online
+                availibilityStats.statusChanged = true;
+            }
+            else{
+                //Website is still online
+                availibilityStats.statusChanged = false;
+            }
+            availibilityStats.isAvailable = true
+        }
+        logMessages = alerting(availibilityStats.logMessages,availibilityStats);
+        availibilityStats.logMessages = logMessages;
         return availibilityStats
     }
     /*
