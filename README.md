@@ -16,9 +16,14 @@ However, it is recommended to update NodeJS first.
 Simply run this command in a console interpreter to install all dependencies
 <pre>npm install</pre>
 
-### Test
-Running npm install will also install mocha. You can implement new tests or run already existing tests using
-<pre>npm test</pre>
+### Features
++ Monitor any number of websites by precising either domain names or website urls
++ Monitor websites using HTTP or HTTPS protocol (depending on url precised or server redirection url)
++ Script handles 301 and 302 status code when server tries to redirect the request
++ DNS lookup delays, TCP connection delays, TLS handshake delays (for HTTPS protocol), TTFB (Time To First Byte) and TTLB (Time To Last Byte) will be measured
++ Algorithm keeps track of status codes emitted by the server
++ Every 10 seconds, analytics of the last ten minutes are displayed
++ Every minute, additional analytics about the whole last hour are published
 
 ### Running
 
