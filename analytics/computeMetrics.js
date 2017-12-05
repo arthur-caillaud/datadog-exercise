@@ -300,7 +300,7 @@ const computeData = function(website,checkInterval){
             });
         },
         error: err => {
-            console.error(err)
+            console.error(err);
         }
     });
     return Rx.Observable.create(obs => {

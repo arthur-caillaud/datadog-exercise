@@ -1,5 +1,6 @@
 const readline = require('readline');
 const Rx = require('rxjs');
+const console = require('./console');
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -8,15 +9,17 @@ const rl = readline.createInterface({
 
 const askForInput = function(){
     return Rx.Observable.create(obs => {
-        rl.question('Which websites do you want to monitor? (separate each website with a space) \n', answer => {
+        console.info('Which websites do you want to monitor? (separate each website with a space)')
+        rl.question('', answer => {
             let websitesArray = answer.split(' ');
             let index = websitesArray.indexOf('');
             if (index > -1) {
                 websitesArray.splice(index, 1);
             }
             if(websitesArray.length > 0){
-                rl.question("At what intervals (in seconds) do you want to collect your metrics? \n"+
-                "(precise only one if you choose the same for all website, separe each interval with a space if not)\n", answer => {
+                console.info("At what intervals (in seconds) do you want to collect your metrics? \n"+
+                "(precise only one if you choose the same for all website, separe each interval with a space if not)");
+                rl.question('', answer => {
                     let checkIntervals = answer.split(' ');
                     let index = checkIntervals.indexOf('');
                     if (index > -1) {

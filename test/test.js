@@ -15,5 +15,5 @@ describe("Availibility Alerting Logs", () => {
 
         //TEST PHASE
         expect(newLogMessages.length).to.equal(2);
-    });
+    });’
 });

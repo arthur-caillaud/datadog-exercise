@@ -3,6 +3,7 @@ const Rx = require('rxjs');
 const http = require('http');
 const https = require('https');
 const checkForInternetConnection = require('../exception/checkForInternetConnection');
+const console = require('../console/console');
 
 const NS_PER_MS = 1000000;
 const MS_PER_S = 1000;
@@ -331,7 +332,7 @@ const measurePerformance = function(website,checkInterval){
                     let finalProtocol = protocol;
                     let finalMeasurementFunction = httpMeasure;
                     if(data.shouldRedirect){
-                        console.log("Server is trying to redirect us.\nChanging url used for monitoring.");
+                        console.info("Server is trying to redirect us.\nChanging url used for monitoring.");
                         finalUrl = toStandardUrl(data.trueLocation).url;
                         finalProtocol = toStandardUrl(data.trueLocation).protocol;
                         if (finalProtocol === 'https'){
@@ -359,7 +360,7 @@ const measurePerformance = function(website,checkInterval){
                 };
             },
             error: err => {
-                console.error(err);
+                obs.error(err);
             }
         });
     });

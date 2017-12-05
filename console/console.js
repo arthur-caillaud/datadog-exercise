@@ -15,16 +15,16 @@ function timestampToHour(timestamp){
     return formattedTime;
 }
 
+function info(message){
+    console.log("\x1b[34m%s\x1b[0m",message)
+}
+
 function error(message){
     console.error("\x1b[31m%s\x1b[0m",message);
 }
 
 function ok(message){
     console.log("\x1b[32m%s\x1b[0m",message);
-}
-
-function log(message){
-    console.log(message);
 }
 
 function logData(website, data){
@@ -53,16 +53,19 @@ function logData(website, data){
         });
     }
     if(data.type === 'tenMinutesAnalytics'){
-        console.log("\nTEN LAST MINUTES ANALYTICS ",website);
+        info("\nLAST TEN MINUTES ANALYTICS ");
+        console.log(website);
         console.table(titles,dataArray);
-        console.log("STATUS CODES");
+        info("STATUS CODES");
         statusCodeTitles.forEach((label,index) => {
             console.log(label, ' | ', statusCodeLine[index])
         })
     }
     if(data.type === 'hourAnalytics'){
-        console.log("\nLAST HOUR ANALYTICS ",website);
+        info("\nLAST HOUR ANALYTICS ");
+        console.log(website);
         console.table(titles,dataArray);
+        info("STATUS CODES");
         console.table(statusCodeTitles,statusCodeLine);
     }
 }
@@ -82,7 +85,8 @@ function logStatus(website,data){
 }
 
 module.exports = {
-    log,
+    log: console.log,
+    info,
     ok,
     error,
     logData,
