@@ -103,7 +103,6 @@ const pingMeasure = function(websiteUrl){
  */
 const requestCallBackFunction = function(res, obs, startTime){
     const statusCode = res.statusCode;
-    console.log(statusCode);
     if (statusCode !== 200) {
         if (statusCode === 301 || statusCode === 302) {
             // We have to change the url used for further requests as the server wants to redirect us
@@ -327,7 +326,6 @@ const measurePerformance = function(website,checkInterval){
         }
         measurementFunction(trueUrl).subscribe({
             next: data => {
-                console.log(data);
                 if(data.statusCode){
                     let finalUrl = trueUrl;
                     let finalProtocol = protocol;
@@ -351,7 +349,6 @@ const measurePerformance = function(website,checkInterval){
                         });
                         pingMeasure(finalUrl).subscribe({
                             next: data => {
-                                console.log('ping',data)
                                 obs.next(data)
                             },
                             error: err => {
